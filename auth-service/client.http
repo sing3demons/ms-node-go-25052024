@@ -7,6 +7,26 @@ POST {{url}}/register HTTP/1.1
 content-type: application/json
 
 {
-    "email": "sing3@dev.com",
+    "email": "sing@dev.com",
     "password": "123456"
 }
+
+###
+# @name auth
+POST {{url}}/login HTTP/1.1
+content-type: application/json
+
+{
+    "email": "sing@dev.com",
+    "password": "123456"
+}
+
+###
+@refreshToken = {{auth.response.body.$.data.refresh_token}}
+###
+@accessToken = {{auth.response.body.$.data.access_token}}
+
+###
+GET {{url}}/profile HTTP/1.1
+content-type: application/json
+Authorization : Bearer {{accessToken}}

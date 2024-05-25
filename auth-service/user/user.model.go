@@ -4,14 +4,23 @@ import "time"
 
 type User struct {
 	ID       string    `json:"id" bson:"id,omitempty"`
-	Href     string    `json:"href"`
+	Href     string    `json:"href" bson:"-"`
 	Username string    `json:"username,omitempty" bson:"username,omitempty"`
 	Email    string    `json:"email" bson:"email"`
-	Password string    `json:"-" bson:"password"`
+	Password string    `json:"password" bson:"password"`
 	Name     string    `json:"name" bson:"name,omitempty"`
 	Roles    []string  `json:"roles" bson:"roles,omitempty"`
 	CreateAt time.Time `json:"-" bson:"create_at,omitempty"`
 	UpdateAt time.Time `json:"-" bson:"update_at,omitempty"`
+}
+
+type IUser struct {
+	ID       string   `json:"id"`
+	Href     string   `json:"href"`
+	Username string   `json:"username,omitempty"`
+	Email    string   `json:"email"`
+	Name     string   `json:"name,omitempty"`
+	Roles    []string `json:"roles"`
 }
 
 type Attachment struct {
@@ -47,4 +56,23 @@ type Profile struct {
 	Languages   []ProfileLanguage `json:"languages,omitempty" bson:"languages,omitempty"`
 	CreateDate  string            `json:"createDate,omitempty" bson:"createDate,omitempty"`
 	UpdateDate  string            `json:"updateDate,omitempty" bson:"updateDate,omitempty"`
+}
+
+type TokenResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
+type Login struct {
+	Username string `json:"username,omitempty"`
+	Email    string `json:"email,omitempty"`
+	Password string `json:"password"`
+}
+type Response[T any] struct {
+	Message  string `json:"message"`
+	Status   string `json:"status"`
+	Data     T      `json:"data"`
+	Total    uint   `json:"total,omitempty"`
+	PageSize uint   `json:"pageSize,omitempty"`
+	Page     uint   `json:"page,omitempty"`
 }

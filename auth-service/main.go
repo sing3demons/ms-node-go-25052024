@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"github.com/sing3demons/auth-service/logger"
 	"github.com/sing3demons/auth-service/mlog"
 	"github.com/sing3demons/auth-service/router"
@@ -13,11 +14,18 @@ import (
 	"github.com/sing3demons/auth-service/user"
 )
 
+func init() {
+	if os.Getenv("ENV") != "production" {
+		if err := godotenv.Load(".env"); err != nil {
+			panic(err)
+		}
+
+	}
+}
+
 func main() {
 	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
+
 	logger := logger.New()
 	logger.Info("Starting the application...")
 

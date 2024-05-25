@@ -66,7 +66,9 @@ func Register(r router.MyRouter, client *mongo.Client, logger *slog.Logger) rout
 	authMiddleware := Authorization()
 	r.POST("/register", userHandler.Register)
 	r.POST("/login", userHandler.Login)
+	r.POST("/verify", userHandler.VerifyToken)
 	r.GET("/profile", authMiddleware, userHandler.Profile)
+	r.POST("/refresh", authMiddleware, userHandler.Refresh)
 
 	return r
 

@@ -19,12 +19,8 @@ type UserService interface {
 	CreateUser(ctx context.Context, logger *slog.Logger, body User) (User, error)
 	GetUser(ctx context.Context, logger *slog.Logger, id string) (User, error)
 	Login(ctx context.Context, logger *slog.Logger, body Login) (*TokenResponse, error)
-}
-
-type RegisteredClaims struct {
-	jwt.RegisteredClaims
-	UserName string `json:"username,omitempty"`
-	Email    string `json:"email,omitempty"`
+	RefreshToken(ctx context.Context, logger *slog.Logger, token string) (*TokenResponse, error)
+	VerifyAccessToken(logger *slog.Logger, token string) (*TokenResponse, error)
 }
 
 type userService struct {
@@ -70,7 +66,7 @@ func (u *userService) generateAccessToken(user User) (string, error) {
 	return jwt.NewWithClaims(jwt.SigningMethodRS256, claims).SignedString(rsa)
 }
 
-func (u *userService) VerifyAccessToken(token string) (jwt.Claims, error) {
+func (u *userService) VerifyAccessToken(logger *slog.Logger, token string) (*TokenResponse, error) {
 	public := os.Getenv("PUBLIC_ACCESS_KEY")
 
 	if public == "" {
@@ -94,7 +90,11 @@ func (u *userService) VerifyAccessToken(token string) (jwt.Claims, error) {
 		return nil, err
 	}
 
-	return t.Claims, nil
+	if !t.Valid {
+		return nil, errors.New("token invalid")
+	}
+
+	return &TokenResponse{AccessToken: token}, nil
 }
 
 func (u *userService) VerifyRefreshToken(token string) (jwt.Claims, error) {
@@ -277,6 +277,10 @@ func (u *userService) GetUser(ctx context.Context, logger *slog.Logger, id strin
 	logger.Info("Get user success", "id", user.ID)
 
 	return user, nil
+}
+
+func (u *userService) RefreshToken(ctx context.Context, logger *slog.Logger, token string) (*TokenResponse, error) {
+	return nil, nil
 }
 
 // func (u *userService) UpdateUser() {}

@@ -19,10 +19,45 @@ type UserHandler interface {
 	Register(ctx *gin.Context)
 	Login(ctx *gin.Context)
 	Profile(c *gin.Context)
+	VerifyToken(c *gin.Context)
+	Refresh(c *gin.Context)
 }
 
 func NewUserHandler(userService UserService, logger *slog.Logger) UserHandler {
 	return &userHandler{userService, logger}
+}
+
+func (u *userHandler) Refresh(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 20*time.Second)
+	defer cancel()
+	logger := mlog.L(ctx)
+	logger.Info("Refresh token")
+
+	var body RefreshTokenResponse
+	var response Response[*TokenResponse]
+
+	if err := c.BindJSON(&body); err != nil {
+		logger.Error(err.Error())
+		response.Message = err.Error()
+		response.Status = "error"
+		c.JSON(http.StatusBadRequest, response)
+		return
+	}
+
+	result, err := u.userService.RefreshToken(ctx, logger, body.RefreshToken)
+	if err != nil {
+		logger.Error(err.Error())
+		response.Message = err.Error()
+		response.Status = "error"
+		c.JSON(http.StatusBadRequest, response)
+		return
+	}
+
+	response.Message = "Refresh token success"
+	response.Status = "success"
+	response.Data = result
+
+	c.JSON(http.StatusOK, response)
 }
 
 func (u *userHandler) Profile(c *gin.Context) {
@@ -110,7 +145,7 @@ func (u *userHandler) Login(c *gin.Context) {
 	var response Response[*TokenResponse]
 	if err := c.BindJSON(&body); err != nil {
 		logger.Error(err.Error())
-		response.Message = "Bad Request"
+		response.Message = err.Error()
 		response.Status = "error"
 		c.JSON(400, response)
 		return
@@ -119,13 +154,46 @@ func (u *userHandler) Login(c *gin.Context) {
 	result, err := u.userService.Login(ctx, logger, body)
 	if err != nil {
 		logger.Error(err.Error())
-		response.Message = "Bad Request"
+		response.Message = err.Error()
 		response.Status = "error"
 		c.JSON(400, response)
 		return
 	}
 
 	response.Message = "Login success"
+	response.Status = "success"
+	response.Data = result
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (u *userHandler) VerifyToken(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 20*time.Second)
+	defer cancel()
+	logger := mlog.L(ctx)
+	logger.Info("Verify token")
+
+	var body TokenResponse
+	var response Response[*TokenResponse]
+	if err := c.BindJSON(&body); err != nil {
+		logger.Error(err.Error())
+		response.Message = err.Error()
+		response.Status = "error"
+		c.JSON(http.StatusBadRequest, response)
+		return
+	}
+
+	result, err := u.userService.VerifyAccessToken(logger, body.AccessToken)
+	if err != nil {
+		logger.Error(err.Error())
+		response.Message = err.Error()
+		response.Status = "error"
+
+		c.JSON(http.StatusBadRequest, response)
+		return
+	}
+
+	response.Message = "success"
 	response.Status = "success"
 	response.Data = result
 

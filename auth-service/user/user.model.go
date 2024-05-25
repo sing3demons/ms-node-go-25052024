@@ -1,6 +1,10 @@
 package user
 
-import "time"
+import (
+	"time"
+
+	jwt "github.com/golang-jwt/jwt/v5"
+)
 
 type User struct {
 	ID       string    `json:"id" bson:"id,omitempty"`
@@ -60,6 +64,10 @@ type Profile struct {
 
 type TokenResponse struct {
 	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token,omitempty"`
+}
+
+type RefreshTokenResponse struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
@@ -75,4 +83,10 @@ type Response[T any] struct {
 	Total    uint   `json:"total,omitempty"`
 	PageSize uint   `json:"pageSize,omitempty"`
 	Page     uint   `json:"page,omitempty"`
+}
+
+type RegisteredClaims struct {
+	jwt.RegisteredClaims
+	UserName string `json:"username,omitempty"`
+	Email    string `json:"email,omitempty"`
 }

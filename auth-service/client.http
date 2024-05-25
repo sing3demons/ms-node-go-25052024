@@ -30,3 +30,21 @@ content-type: application/json
 GET {{url}}/profile HTTP/1.1
 content-type: application/json
 Authorization : Bearer {{accessToken}}
+
+
+###
+POST {{url}}/refresh HTTP/1.1
+content-type: application/json
+Authorization : Bearer {{refreshToken}}
+
+{
+    "refresh_token": "{{refreshToken}}"
+}
+
+###
+POST {{url}}/verify HTTP/1.1
+content-type: application/json
+
+{
+    "access_token": "{{accessToken}}"
+}

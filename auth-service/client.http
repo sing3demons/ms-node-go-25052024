@@ -1,0 +1,12 @@
+@url=http://localhost:8080
+
+GET {{url}}/healthz HTTP/1.1
+
+###
+POST {{url}}/register HTTP/1.1
+content-type: application/json
+
+{
+    "email": "sing3@dev.com",
+    "password": "123456"
+}

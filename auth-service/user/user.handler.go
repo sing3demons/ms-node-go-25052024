@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -85,7 +86,7 @@ func (u *userHandler) Profile(c *gin.Context) {
 
 	data := IUser{
 		ID:       result.ID,
-		Href:     c.Request.URL.Path + "/" + result.ID,
+		Href:     u.HostUrl(c.Request.URL.Path + "/" + result.ID),
 		Username: result.Username,
 		Email:    result.Email,
 		Name:     result.Name,
@@ -95,6 +96,10 @@ func (u *userHandler) Profile(c *gin.Context) {
 	response.Data = data
 
 	c.JSON(http.StatusOK, response)
+}
+
+func (u *userHandler) HostUrl(url string) string {
+	return os.Getenv("HOST_URL") + url
 }
 
 func (u *userHandler) Register(c *gin.Context) {
@@ -128,7 +133,7 @@ func (u *userHandler) Register(c *gin.Context) {
 
 	data := IUser{
 		ID:       result.ID,
-		Href:     c.Request.URL.Path + "/" + result.ID,
+		Href:     u.HostUrl(c.Request.URL.Path + "/" + result.ID),
 		Username: result.Username,
 		Email:    result.Email,
 		Name:     result.Name,

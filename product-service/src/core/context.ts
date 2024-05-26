@@ -31,9 +31,9 @@ export default class Context {
   static getHeaders(req: Request): ICustomHeaders {
     return {
       session: (req.headers['x-session'] as string) ?? `default-${uuidv4()}`,
-      ip: (req.headers['x-forwarded-for'] as string) ?? req.socket.remoteAddress,
-      userAgent: req.headers['user-agent'],
-      host: hostname() || undefined,
+      //   ip: (req.headers['x-forwarded-for'] as string) ?? req.socket.remoteAddress,
+      //   userAgent: req.headers['user-agent'],
+      //   host: hostname() || undefined,
     }
   }
 }

@@ -5,7 +5,7 @@ import Logger from './core/logger'
 import Context from './core/context'
 import { connectMongo } from './core/mongo'
 import config from './config'
-
+import httpLogger from './middleware/log'
 
 async function main() {
   const myRoute = new TypeRoute()
@@ -14,6 +14,7 @@ async function main() {
   const db = await connectMongo()
   const app = express()
   app.use(Context.Ctx)
+  app.use(httpLogger(logger))
   app.use(express.json())
   app.use(express.urlencoded({ extended: true }))
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"log/slog"
 	"os"
 	"time"
@@ -27,10 +26,10 @@ type UserService interface {
 
 type userService struct {
 	*mongo.Client
-	*redis.Cacher
+	redis redis.IRedis
 }
 
-func NewUserService(client *mongo.Client, redisClient *redis.Cacher) UserService {
+func NewUserService(client *mongo.Client, redisClient redis.IRedis) UserService {
 	return &userService{client, redisClient}
 }
 
@@ -207,10 +206,9 @@ func (u *userService) Login(ctx context.Context, logger *slog.Logger, body Login
 	}
 	token.RefreshToken = refreshToken
 
-	statusCmd := u.Cacher.SetEx(ctx, refreshToken, "true", time.Minute*60)
-	if statusCmd.Err() != nil {
-		logger.Error(statusCmd.Err().Error())
-		return nil, statusCmd.Err()
+	if err := u.redis.SetEx(ctx, refreshToken, "true", time.Minute*60); err != nil {
+		logger.Error(err.Error())
+		return nil, err
 	}
 
 	return &token, nil
@@ -305,9 +303,7 @@ func (u *userService) RefreshToken(ctx context.Context, logger *slog.Logger, tok
 		return nil, errors.New(ErrTokenInvalid)
 	}
 
-	intCmd := u.Cacher.Exists(ctx, token)
-
-	intCmdVal, err := intCmd.Result()
+	intCmdVal, err := u.redis.Exists(ctx, token)
 	if err != nil {
 		logger.Error(err.Error())
 		return nil, err
@@ -318,10 +314,9 @@ func (u *userService) RefreshToken(ctx context.Context, logger *slog.Logger, tok
 		return nil, errors.New("refresh token not found")
 	}
 
-	IntCmd := u.Cacher.Del(ctx, token)
-	if IntCmd.Err() != nil {
-		logger.Error(IntCmd.Err().Error())
-		return nil, IntCmd.Err()
+	if err := u.redis.Del(ctx, token); err != nil {
+		logger.Error(err.Error())
+		return nil, err
 	}
 	user, err := u.GetUser(ctx, logger, customClaims.Subject)
 	if err != nil {
@@ -345,11 +340,9 @@ func (u *userService) RefreshToken(ctx context.Context, logger *slog.Logger, tok
 		return nil, errors.New("generate refresh token failed")
 	}
 
-	statusCmd := u.SetEx(ctx, refreshToken, "true", time.Minute*60)
-	fmt.Println("==================================> ", statusCmd)
-	if statusCmd.Err() != nil {
-		logger.Error(statusCmd.Err().Error())
-		return nil, statusCmd.Err()
+	if err := u.redis.SetEx(ctx, refreshToken, "true", time.Minute*60); err != nil {
+		logger.Error(err.Error())
+		return nil, err
 	}
 
 	response.RefreshToken = refreshToken

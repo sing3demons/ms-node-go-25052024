@@ -60,7 +60,7 @@ func Authorization() gin.HandlerFunc {
 	}
 }
 
-func Register(r router.MyRouter, client *mongo.Client, redisClient *redis.Cacher, logger *slog.Logger) router.MyRouter {
+func Register(r router.MyRouter, client *mongo.Client, redisClient redis.IRedis, logger *slog.Logger) router.MyRouter {
 	logger.Info("Register user routes")
 	userService := NewUserService(client, redisClient )
 	userHandler := NewUserHandler(userService, logger)

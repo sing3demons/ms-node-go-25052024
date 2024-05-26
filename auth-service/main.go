@@ -47,7 +47,7 @@ func main() {
 			return
 		}
 
-		_, err := redisClient.Ping(ctx).Result()
+		_, err := redisClient.Ping(ctx)
 		if err != nil {
 			logger.Error(err.Error())
 			c.JSON(500, "Internal Server Error")

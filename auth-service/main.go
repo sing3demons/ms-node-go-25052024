@@ -37,6 +37,10 @@ func main() {
 	r := router.New()
 	r.Use(mlog.Middleware(logger))
 	r.GET("/healthz", func(c *gin.Context) {
+		if err := db.Ping(ctx, nil); err != nil {
+			c.JSON(500, "Internal Server Error")
+			return
+		}
 		c.JSON(200, "OK")
 	})
 

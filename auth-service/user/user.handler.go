@@ -104,10 +104,14 @@ func (u *userHandler) Register(c *gin.Context) {
 	logger.Info("Create user")
 
 	var body User
-	response := Response[IUser]{}
+	response := Response[*IUser]{}
 
 	if err := c.BindJSON(&body); err != nil {
 		logger.Error(err.Error())
+		response.Message = err.Error()
+		response.Status = "error"
+		response.Data = nil
+
 		c.JSON(http.StatusBadRequest, response)
 		return
 	}
@@ -115,6 +119,9 @@ func (u *userHandler) Register(c *gin.Context) {
 	result, err := u.userService.CreateUser(ctx, logger, body)
 	if err != nil {
 		logger.Error(err.Error())
+		response.Message = err.Error()
+		response.Status = "error"
+		response.Data = nil
 		c.JSON(http.StatusBadRequest, response)
 		return
 	}
@@ -130,7 +137,7 @@ func (u *userHandler) Register(c *gin.Context) {
 
 	response.Message = "Create user success"
 	response.Status = "success"
-	response.Data = data
+	response.Data = &data
 
 	c.JSON(http.StatusCreated, response)
 }

@@ -3,6 +3,7 @@ package redis
 import (
 	"context"
 	"log"
+	"os"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -21,7 +22,7 @@ type IRedis interface {
 type cacher struct{ *redis.Client }
 
 func New() IRedis {
-	uri := "localhost:6379"
+	uri := os.Getenv("REDIS_URI")
 	redisClient := redis.NewClient(&redis.Options{
 		Addr: uri,
 	})

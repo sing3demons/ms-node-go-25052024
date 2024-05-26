@@ -41,11 +41,11 @@ func main() {
 	r := router.New()
 	r.Use(mlog.Middleware(logger))
 	r.GET("/healthz", func(c *gin.Context) {
-		if err := db.Ping(ctx, nil); err != nil {
-			logger.Error(err.Error())
-			c.JSON(500, "Internal Server Error")
-			return
-		}
+		// if err := db.Ping(ctx, nil); err != nil {
+		// 	logger.Error(err.Error())
+		// 	c.JSON(500, "Internal Server Error")
+		// 	return
+		// }
 
 		_, err := redisClient.Ping(ctx)
 		if err != nil {

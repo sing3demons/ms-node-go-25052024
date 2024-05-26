@@ -8,6 +8,8 @@ services:
     restart: always
     ports:
       - '6379:6379'
+    networks:
+      - ms-service
   redislnsight:
     image: redis/redisinsight:latest
     hostname: redislnsight
@@ -19,3 +21,8 @@ services:
       - '8001:5540'
     environment:
       REDISINSIGHT_REDIS_URI: 'redis://redis:6379'
+    networks:
+      - ms-service
+networks:
+  ms-service:
+    name: ms-service

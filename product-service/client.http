@@ -1,6 +1,24 @@
 @url=http://localhost:3000
 
+###
+# @name auth
+POST http://localhost:8080/api/v1/auth/login HTTP/1.1
+content-type: application/json
+
+{
+    "email": "sing@dev.com",
+    "password": "123456"
+}
+
+###
+@refreshToken = {{auth.response.body.$.data.refresh_token}}
+###
+@accessToken = {{auth.response.body.$.data.access_token}}
+
+###
+
 GET {{url}}/products HTTP/1.1
+Authorization : Bearer {{accessToken}}
 
 ###
 POST {{url}}/products HTTP/1.1

@@ -2,7 +2,7 @@ import { z } from 'zod'
 import Context from '../core/context'
 import { LoggerType } from '../core/logger'
 import { IRoute } from '../core/my-route'
-import { IProduct, ProductBodySchema } from './product.model'
+import { IProduct, IProductQuerySchema, ProductBodySchema } from './product.model'
 import ProductService from './product.service'
 import config from '../config'
 
@@ -14,25 +14,36 @@ export default class ProductController {
     private readonly productService: ProductService
   ) {}
 
-  getProducts = this.route.get('/').handler(async ({}) => {
-    const ctx = Context.get()
-    const logger = this.logger.Logger(ctx)
-    logger.info('Get products')
-    const data = await this.productService.getProducts(logger)
-    const result: IProduct[] = data.map((item) => {
+  //   page?: string
+  //   pageSize?: string
+  //   sort?: string
+  //   order?: string
+
+  getProducts = this.route
+    .get('/')
+    .query(IProductQuerySchema)
+    .handler(async ({ query }) => {
+      const ctx = Context.get()
+      const logger = this.logger.Logger(ctx)
+      logger.info('Get products')
+      const { data, total } = await this.productService.getProducts(logger, query)
+      const result: IProduct[] = data.map((item) => {
+        return {
+          id: item?.id,
+          href: item?.id && `${this.host}/products/${item?.id}`,
+          name: item?.name,
+          description: item?.description,
+          language: item?.language,
+          price: item?.price,
+        }
+      })
       return {
-        id: item?.id,
-        href: item?.id && `${this.host}/products/${item?.id}`,
-        name: item?.name,
-        description: item?.description,
-        language: item?.language,
-        price: item?.price,
+        data: result,
+        total,
+        page: query.page ? parseInt(query.page) : 1,
+        pageSize: query.pageSize ? parseInt(query.pageSize) : 10,
       }
     })
-    return {
-      data: result,
-    }
-  })
 
   getProductsById = this.route
     .get('/:id')

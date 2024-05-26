@@ -1,8 +1,9 @@
 import { ILogger } from '../core/logger'
-import type { Collection, MongoClient } from 'mongodb'
+import type { Collection, MongoClient, Filter, FindOptions } from 'mongodb'
 import {
   IProduct,
   IProductBody,
+  IProductQuery,
   IProductSchema,
   ProductLanguageSchema,
   ProductPriceLanguageSchema,
@@ -19,14 +20,29 @@ export default class ProductService {
     return this.client.db(dbName).collection<T>(name)
   }
 
-  async getProducts(logger: ILogger) {
+  async getProducts(logger: ILogger, query: IProductQuery) {
     const col = this.getCollection<IProductSchema>('product', 'product')
     logger.info(ProductService.name, {
       service: 'product-service',
       method: 'getProducts',
       message: 'Get products2',
     })
-    return await col.find().toArray()
+
+    const pageSize = query.pageSize ? parseInt(query.pageSize) : 10
+    const page = query.page ? parseInt(query.page) : 1
+
+    const filter: Filter<IProductSchema> = {}
+    const options: FindOptions = {
+      limit: pageSize,
+      skip: (page - 1) * pageSize,
+      sort: query.sort ? { [query.sort]: query.order === 'asc' ? 1 : -1 } : undefined,
+    }
+
+    const [data, total] = await Promise.all([col.find(filter, options).toArray(), col.countDocuments(filter)])
+    return {
+      data,
+      total,
+    }
   }
 
   async getProductById(logger: ILogger, id: string) {

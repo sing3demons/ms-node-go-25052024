@@ -79,3 +79,12 @@ export type IProductBody = z.infer<typeof ProductBodySchema> & {
 export type IProduct = z.infer<typeof ProductSchema> & {
   href: string
 }
+
+export const IProductQuerySchema = z.object({
+  page: z.string().optional(),
+  pageSize: z.string().optional(),
+  sort: z.string().optional(),
+  order: z.string().optional(),
+})
+
+export type IProductQuery = z.infer<typeof IProductQuerySchema>

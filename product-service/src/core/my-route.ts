@@ -57,6 +57,9 @@ interface BaseResponse<T = unknown> {
   success?: boolean
   data?: T
   traceStack?: string
+  page?: number
+  pageSize?: number
+  total?: number
 }
 
 type MaybePromise<T> = T | Promise<T>
@@ -174,8 +177,12 @@ class UnauthorizedError extends HttpError {
   }
 }
 
-
-export function globalErrorHandler(error: unknown, _request: Request, response: Response<BaseResponse>, _next: NextFunction) {
+export function globalErrorHandler(
+  error: unknown,
+  _request: Request,
+  response: Response<BaseResponse>,
+  _next: NextFunction
+) {
   let statusCode = 500
   let message = ''
 

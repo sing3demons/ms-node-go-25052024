@@ -36,7 +36,6 @@ Authorization : Bearer {{accessToken}}
 # @name auth
 POST {{url}}/refresh HTTP/1.1
 content-type: application/json
-Authorization : Bearer {{refreshToken}}
 
 {
     "refresh_token": "{{refreshToken}}"

@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"log/slog"
 	"os"
 	"time"
 
 	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/sing3demons/auth-service/redis"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
@@ -25,10 +27,11 @@ type UserService interface {
 
 type userService struct {
 	*mongo.Client
+	*redis.Cacher
 }
 
-func NewUserService(client *mongo.Client) UserService {
-	return &userService{client}
+func NewUserService(client *mongo.Client, redisClient *redis.Cacher) UserService {
+	return &userService{client, redisClient}
 }
 
 const (
@@ -55,7 +58,7 @@ func (u *userService) generateAccessToken(user User) (string, error) {
 			Issuer:    os.Getenv("ISSUER"),
 			Audience:  jwt.ClaimStrings{},
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 30)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 5)),
 		},
 	}
 
@@ -148,7 +151,7 @@ func (u *userService) generateRefreshToken(user User) (string, error) {
 			Issuer:    os.Getenv("ISSUER"),
 			Audience:  jwt.ClaimStrings{},
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 60 * 24)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 60)),
 		},
 	}
 
@@ -203,6 +206,12 @@ func (u *userService) Login(ctx context.Context, logger *slog.Logger, body Login
 		return nil, errors.New("generate refresh token failed")
 	}
 	token.RefreshToken = refreshToken
+
+	statusCmd := u.Cacher.SetEx(ctx, refreshToken, "true", time.Minute*60)
+	if statusCmd.Err() != nil {
+		logger.Error(statusCmd.Err().Error())
+		return nil, statusCmd.Err()
+	}
 
 	return &token, nil
 
@@ -296,6 +305,24 @@ func (u *userService) RefreshToken(ctx context.Context, logger *slog.Logger, tok
 		return nil, errors.New(ErrTokenInvalid)
 	}
 
+	intCmd := u.Cacher.Exists(ctx, token)
+
+	intCmdVal, err := intCmd.Result()
+	if err != nil {
+		logger.Error(err.Error())
+		return nil, err
+	}
+
+	if intCmdVal == 0 {
+		logger.Error("refresh token not found")
+		return nil, errors.New("refresh token not found")
+	}
+
+	IntCmd := u.Cacher.Del(ctx, token)
+	if IntCmd.Err() != nil {
+		logger.Error(IntCmd.Err().Error())
+		return nil, IntCmd.Err()
+	}
 	user, err := u.GetUser(ctx, logger, customClaims.Subject)
 	if err != nil {
 		logger.Error(err.Error())
@@ -316,6 +343,13 @@ func (u *userService) RefreshToken(ctx context.Context, logger *slog.Logger, tok
 	if err != nil {
 		logger.Error(err.Error())
 		return nil, errors.New("generate refresh token failed")
+	}
+
+	statusCmd := u.SetEx(ctx, refreshToken, "true", time.Minute*60)
+	fmt.Println("==================================> ", statusCmd)
+	if statusCmd.Err() != nil {
+		logger.Error(statusCmd.Err().Error())
+		return nil, statusCmd.Err()
 	}
 
 	response.RefreshToken = refreshToken

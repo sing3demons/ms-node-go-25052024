@@ -9,6 +9,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/sing3demons/auth-service/logger"
 	"github.com/sing3demons/auth-service/mlog"
+	"github.com/sing3demons/auth-service/redis"
 	"github.com/sing3demons/auth-service/router"
 	"github.com/sing3demons/auth-service/store"
 	"github.com/sing3demons/auth-service/user"
@@ -34,17 +35,28 @@ func main() {
 	db := store.NewStore(ctx)
 	defer db.Disconnect(ctx)
 
+	redisClient := redis.New()
+	defer redisClient.Close()
+
 	r := router.New()
 	r.Use(mlog.Middleware(logger))
 	r.GET("/healthz", func(c *gin.Context) {
 		if err := db.Ping(ctx, nil); err != nil {
+			logger.Error(err.Error())
+			c.JSON(500, "Internal Server Error")
+			return
+		}
+
+		_, err := redisClient.Ping(ctx).Result()
+		if err != nil {
+			logger.Error(err.Error())
 			c.JSON(500, "Internal Server Error")
 			return
 		}
 		c.JSON(200, "OK")
 	})
 
-	user.Register(r, db, logger)
+	user.Register(r, db, redisClient, logger)
 
 	r.StartHTTP(port)
 }

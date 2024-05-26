@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	jwt "github.com/golang-jwt/jwt/v5"
+	"github.com/sing3demons/auth-service/redis"
 	"github.com/sing3demons/auth-service/router"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -59,9 +60,9 @@ func Authorization() gin.HandlerFunc {
 	}
 }
 
-func Register(r router.MyRouter, client *mongo.Client, logger *slog.Logger) router.MyRouter {
+func Register(r router.MyRouter, client *mongo.Client, redisClient *redis.Cacher, logger *slog.Logger) router.MyRouter {
 	logger.Info("Register user routes")
-	userService := NewUserService(client)
+	userService := NewUserService(client, redisClient )
 	userHandler := NewUserHandler(userService, logger)
 	authMiddleware := Authorization()
 	v1 := r.Group("/api/v1")

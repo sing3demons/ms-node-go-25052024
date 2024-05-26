@@ -20,6 +20,7 @@ type MyRouter interface {
 	DELETE(relativePath string, handlers ...gin.HandlerFunc)
 	PATCH(relativePath string, handlers ...gin.HandlerFunc)
 	Use(middleware ...gin.HandlerFunc) gin.IRoutes
+	Group(relativePath string, handlers ...gin.HandlerFunc) *gin.RouterGroup
 	StartHTTP(port string)
 }
 
@@ -57,6 +58,10 @@ func (m *myRouter) PATCH(relativePath string, handlers ...gin.HandlerFunc) {
 
 func (m *myRouter) Use(middleware ...gin.HandlerFunc) gin.IRoutes {
 	return m.Engine.Use(middleware...)
+}
+
+func (m *myRouter) Group(relativePath string, handlers ...gin.HandlerFunc) *gin.RouterGroup {
+	return m.Engine.Group(relativePath, handlers...)
 }
 
 func (m *myRouter) StartHTTP(port string) {

@@ -31,6 +31,10 @@ func NewUserService(client *mongo.Client) UserService {
 	return &userService{client}
 }
 
+const (
+	ErrTokenInvalid = "token invalid"
+)
+
 func (u *userService) generateAccessToken(user User) (string, error) {
 	private := os.Getenv("PRIVATE_ACCESS_KEY")
 	if private == "" {
@@ -91,7 +95,7 @@ func (u *userService) VerifyAccessToken(logger *slog.Logger, token string) (*Tok
 	}
 
 	if !t.Valid {
-		return nil, errors.New("token invalid")
+		return nil, errors.New(ErrTokenInvalid)
 	}
 
 	return &TokenResponse{AccessToken: token}, nil
@@ -280,7 +284,43 @@ func (u *userService) GetUser(ctx context.Context, logger *slog.Logger, id strin
 }
 
 func (u *userService) RefreshToken(ctx context.Context, logger *slog.Logger, token string) (*TokenResponse, error) {
-	return nil, nil
+	c, err := u.VerifyRefreshToken(token)
+	if err != nil {
+		logger.Error(err.Error())
+		return nil, err
+	}
+
+	customClaims, ok := c.(*RegisteredClaims)
+	if !ok {
+		logger.Error(ErrTokenInvalid)
+		return nil, errors.New(ErrTokenInvalid)
+	}
+
+	user, err := u.GetUser(ctx, logger, customClaims.Subject)
+	if err != nil {
+		logger.Error(err.Error())
+		return nil, err
+	}
+
+	var response TokenResponse
+
+	accessToken, err := u.generateAccessToken(user)
+	if err != nil {
+		logger.Error(err.Error())
+		return nil, errors.New("generate access token failed")
+	}
+
+	response.AccessToken = accessToken
+
+	refreshToken, err := u.generateRefreshToken(user)
+	if err != nil {
+		logger.Error(err.Error())
+		return nil, errors.New("generate refresh token failed")
+	}
+
+	response.RefreshToken = refreshToken
+
+	return &response, nil
 }
 
 // func (u *userService) UpdateUser() {}

@@ -64,11 +64,13 @@ func Register(r router.MyRouter, client *mongo.Client, logger *slog.Logger) rout
 	userService := NewUserService(client)
 	userHandler := NewUserHandler(userService, logger)
 	authMiddleware := Authorization()
-	r.POST("/register", userHandler.Register)
-	r.POST("/login", userHandler.Login)
-	r.POST("/verify", userHandler.VerifyToken)
-	r.GET("/profile", authMiddleware, userHandler.Profile)
-	r.POST("/refresh", authMiddleware, userHandler.Refresh)
+	v1 := r.Group("/api/v1")
+
+	v1.POST("/auth/register", userHandler.Register)
+	v1.POST("/auth/login", userHandler.Login)
+	v1.POST("/auth/verify", userHandler.VerifyToken)
+	v1.GET("/auth/profile", authMiddleware, userHandler.Profile)
+	v1.POST("/auth/refresh", userHandler.Refresh)
 
 	return r
 

@@ -1,7 +1,9 @@
 import { ILogger } from '../core/logger'
 import type { Collection, MongoClient } from 'mongodb'
 import {
+  IProduct,
   IProductBody,
+  IProductSchema,
   ProductLanguageSchema,
   ProductPriceLanguageSchema,
   ProductPriceSchema,
@@ -18,13 +20,24 @@ export default class ProductService {
   }
 
   async getProducts(logger: ILogger) {
-    const col = this.getCollection<z.infer<typeof ProductSchema> >('product', 'product')
+    const col = this.getCollection<IProductSchema>('product', 'product')
     logger.info(ProductService.name, {
       service: 'product-service',
       method: 'getProducts',
       message: 'Get products2',
     })
     return await col.find().toArray()
+  }
+
+  async getProductById(logger: ILogger, id: string) {
+    const col = this.getCollection<IProduct>('product', 'product')
+    logger.info(ProductService.name, {
+      service: 'product-service',
+      method: 'getProductById',
+      message: 'Get product by id',
+    })
+
+    return await col.findOne({ id })
   }
 
   async createProduct(logger: ILogger, body: IProductBody) {

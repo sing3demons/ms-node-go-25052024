@@ -4,6 +4,8 @@ import { globalErrorHandler, TypeRoute } from './core/my-route'
 import Logger from './core/logger'
 import Context from './core/context'
 import { connectMongo } from './core/mongo'
+import config from './config'
+
 
 async function main() {
   const myRoute = new TypeRoute()
@@ -19,8 +21,8 @@ async function main() {
 
   app.use(globalErrorHandler)
 
-  app.listen(3000, () => {
-    logger.info('Server is running on port 3000')
+  app.listen(config.PORT, () => {
+    logger.info('Server is running on port ' + config.PORT)
   })
 }
 

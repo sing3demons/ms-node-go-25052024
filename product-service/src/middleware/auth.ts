@@ -1,6 +1,7 @@
 import axios, { AxiosResponse, AxiosRequestConfig, RawAxiosRequestHeaders } from 'axios'
 import type { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
+import Config from '../config'
 
 type IAuthService = {
   message: string
@@ -36,11 +37,8 @@ export default class AuthService {
     const data = { access_token: access_token }
 
     try {
-      const result = await axios.post<IBody, AxiosResponse<IAuthService>, IBody>(
-        'http://localhost:8080/api/v1/auth/verify',
-        data,
-        config
-      )
+      const url = Config.AUTH_SERVICE
+      const result = await axios.post<IBody, AxiosResponse<IAuthService>, IBody>(url, data, config)
 
       if (result.status === 200) {
         const token = result.data.data.access_token

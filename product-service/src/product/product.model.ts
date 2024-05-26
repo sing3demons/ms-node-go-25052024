@@ -50,6 +50,8 @@ export const ProductSchema = z.object({
   language: z.array(ProductLanguageSchema).optional(),
 })
 
+export type IProductSchema = z.infer<typeof ProductSchema>
+
 const Product = z.object({
   name: z.string(),
   description: z.string().optional(),

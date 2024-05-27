@@ -45,6 +45,8 @@ type ProfileLanguage struct {
 	Href         string       `json:"href"`
 	LanguageCode string       `json:"languageCode" bson:"languageCode"`
 	Name         string       `json:"name,omitempty" bson:"name,omitempty"`
+	FirstName    string       `json:"firstName,omitempty" bson:"firstName,omitempty"`
+	LastName     string       `json:"lastName,omitempty" bson:"lastName,omitempty"`
 	Description  string       `json:"description,omitempty" bson:"description,omitempty"`
 	Attachments  []Attachment `json:"attachments,omitempty" bson:"attachments,omitempty"`
 	CreateDate   string       `json:"createDate,omitempty" bson:"createDate,omitempty"`
@@ -53,13 +55,29 @@ type ProfileLanguage struct {
 
 type Profile struct {
 	ID          string            `json:"id,omitempty" bson:"id,omitempty"`
-	Name        string            `json:"name,omitempty" bson:"name,omitempty"`
+	FirstName   string            `json:"firstName,omitempty" bson:"firstName,omitempty"`
+	LastName    string            `json:"lastName,omitempty" bson:"lastName,omitempty"`
 	Description string            `json:"description,omitempty" bson:"description,omitempty"`
 	Phone       string            `json:"phone,omitempty" bson:"phone,omitempty"`
 	Address     string            `json:"address,omitempty" bson:"address,omitempty"`
 	Languages   []ProfileLanguage `json:"languages,omitempty" bson:"languages,omitempty"`
 	CreateDate  string            `json:"createDate,omitempty" bson:"createDate,omitempty"`
 	UpdateDate  string            `json:"updateDate,omitempty" bson:"updateDate,omitempty"`
+}
+
+type UpdateProfile struct {
+	ID             string `json:"id,omitempty" bson:"id,omitempty"`
+	FirstName      string `json:"firstName,omitempty" bson:"firstName,omitempty"`
+	LastName       string `json:"lastName,omitempty" bson:"lastName,omitempty"`
+	Description    string `json:"description,omitempty" bson:"description,omitempty"`
+	ProfileImage   string `json:"profileImage,omitempty" bson:"profileImage,omitempty"`
+	Phone          string `json:"phone,omitempty" bson:"phone,omitempty"`
+	Address        string `json:"address,omitempty" bson:"address,omitempty"`
+	FirstNameTH    string `json:"firstNameTH,omitempty" bson:"firstNameTH,omitempty"`
+	LastNameTH     string `json:"lastNameTH,omitempty" bson:"lastNameTH,omitempty"`
+	DescriptionTH  string `json:"descriptionTH,omitempty" bson:"descriptionTH,omitempty"`
+	ProfileImageTH string `json:"profileImageTH,omitempty" bson:"profileImageTH,omitempty"`
+	UpdateDate     string `json:"updateDate,omitempty" bson:"updateDate,omitempty"`
 }
 
 type TokenResponse struct {

@@ -13,6 +13,7 @@ import (
 	"github.com/sing3demons/auth-service/redis"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -36,41 +37,6 @@ func NewUserService(client *mongo.Client, redisClient redis.IRedis) UserService 
 const (
 	ErrTokenInvalid = "token invalid"
 )
-
-func (u *userService) generateAccessToken(user User) (string, error) {
-	private := os.Getenv("PRIVATE_ACCESS_KEY")
-	if private == "" {
-		return "", errors.New("private key not found")
-	}
-	privateKey, err := base64.StdEncoding.DecodeString(private)
-	if err != nil {
-		return "", err
-	}
-	rsa, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(privateKey))
-	if err != nil {
-		return "", err
-	}
-
-	claims := &RegisteredClaims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			Subject:   user.ID,
-			Issuer:    os.Getenv("ISSUER"),
-			Audience:  jwt.ClaimStrings{},
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 5)),
-		},
-	}
-
-	if user.Email != "" {
-		claims.Email = user.Email
-	}
-
-	if user.Username != "" {
-		claims.UserName = user.Username
-	}
-
-	return jwt.NewWithClaims(jwt.SigningMethodRS256, claims).SignedString(rsa)
-}
 
 func (u *userService) VerifyAccessToken(logger *slog.Logger, token string) (*TokenResponse, error) {
 	public := os.Getenv("PUBLIC_ACCESS_KEY")
@@ -103,7 +69,7 @@ func (u *userService) VerifyAccessToken(logger *slog.Logger, token string) (*Tok
 	return &TokenResponse{AccessToken: token}, nil
 }
 
-func (u *userService) VerifyRefreshToken(token string) (jwt.Claims, error) {
+func (u *userService) verifyRefreshToken(token string) (jwt.Claims, error) {
 	public := os.Getenv("PUBLIC_REFRESH_KEY")
 	if public == "" {
 		return nil, errors.New("public key not found")
@@ -127,42 +93,6 @@ func (u *userService) VerifyRefreshToken(token string) (jwt.Claims, error) {
 	}
 
 	return t.Claims, nil
-}
-
-func (u *userService) generateRefreshToken(user User) (string, error) {
-	private := os.Getenv("PRIVATE_REFRESH_KEY")
-	if private == "" {
-		return "", errors.New("private key not found")
-	}
-
-	privateKey, err := base64.StdEncoding.DecodeString(private)
-	if err != nil {
-		return "", err
-	}
-	rsa, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(privateKey))
-	if err != nil {
-		return "", err
-	}
-
-	claims := &RegisteredClaims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			Subject:   user.ID,
-			Issuer:    os.Getenv("ISSUER"),
-			Audience:  jwt.ClaimStrings{},
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 60)),
-		},
-	}
-
-	if user.Email != "" {
-		claims.Email = user.Email
-	}
-
-	if user.Username != "" {
-		claims.UserName = user.Username
-	}
-
-	return jwt.NewWithClaims(jwt.SigningMethodRS256, claims).SignedString(rsa)
 }
 
 func (u *userService) Login(ctx context.Context, logger *slog.Logger, body Login) (*TokenResponse, error) {
@@ -213,18 +143,6 @@ func (u *userService) Login(ctx context.Context, logger *slog.Logger, body Login
 
 	return &token, nil
 
-}
-
-func (u *userService) hashPassword(password string) (string, error) {
-	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return "", err
-	}
-	return string(hashed), nil
-}
-
-func (u *userService) comparePassword(hashed, password string) error {
-	return bcrypt.CompareHashAndPassword([]byte(hashed), []byte(password))
 }
 
 func (u *userService) CreateUser(ctx context.Context, logger *slog.Logger, body User) (User, error) {
@@ -291,7 +209,7 @@ func (u *userService) GetUser(ctx context.Context, logger *slog.Logger, id strin
 }
 
 func (u *userService) RefreshToken(ctx context.Context, logger *slog.Logger, token string) (*TokenResponse, error) {
-	c, err := u.VerifyRefreshToken(token)
+	c, err := u.verifyRefreshToken(token)
 	if err != nil {
 		logger.Error(err.Error())
 		return nil, err
@@ -350,8 +268,190 @@ func (u *userService) RefreshToken(ctx context.Context, logger *slog.Logger, tok
 	return &response, nil
 }
 
-// func (u *userService) UpdateUser() {}
+func (u *userService) UpdateUser(ctx context.Context, logger *slog.Logger, body UpdateProfile) (any, error) {
+	session, err := u.Client.StartSession()
+	if err != nil {
+		logger.Error(err.Error())
+		return nil, err
+	}
+
+	session.StartTransaction()
+	defer session.EndSession(ctx)
+
+	dbProfile := u.Client.Database("auth").Collection("profileLanguage")
+
+	profileLanguage := []ProfileLanguage{}
+	profileTH := &ProfileLanguage{}
+	profileEN := &ProfileLanguage{}
+	profileEN.LanguageCode = "en"
+
+	if body.FirstNameTH != "" {
+		profileTH.FirstName = body.FirstNameTH
+	}
+
+	dbUser := u.Client.Database("auth").Collection("users")
+	users := Profile{}
+	if err := dbUser.FindOne(ctx, bson.M{"id": body.ID}).Decode(&users); err != nil {
+		logger.Error(err.Error())
+		session.AbortTransaction(ctx)
+		return nil, err
+	}
+
+	if (users.Languages == nil) || (len(users.Languages) == 0) {
+		profile := ProfileLanguage{}
+		profile.ID = uuid.New().String()
+
+	} else {
+		for _, lang := range users.Languages {
+
+			_ = lang
+		}
+	}
+
+	if body.FirstName != "" {
+		users.FirstName = body.FirstName
+		profileEN.FirstName = body.FirstName
+	}
+
+	if body.LastName != "" {
+		users.LastName = body.LastName
+		profileEN.LastName = body.LastName
+	}
+
+	if body.Description != "" {
+		users.Description = body.Description
+		profileEN.Description = body.Description
+	}
+
+	if body.Phone != "" {
+		users.Phone = body.Phone
+	}
+
+	if body.Address != "" {
+		users.Address = body.Address
+	}
+
+	users.UpdateDate = time.Now().String()
+
+	updateResult, err := dbUser.UpdateOne(ctx, bson.M{"id": users.ID}, &users, &options.UpdateOptions{Upsert: &[]bool{true}[0]})
+	if err != nil {
+		logger.Error(err.Error())
+		session.AbortTransaction(ctx)
+		return nil, err
+	}
+
+	if body.ProfileImage != "" {
+		profileEN.Attachments = append(profileEN.Attachments, Attachment{
+			ID:   uuid.New().String(),
+			Name: "profileImage",
+			URL:  body.ProfileImage,
+			Type: "image",
+		})
+	}
+
+	profileTH.LanguageCode = "th"
+	profileLanguage = append(profileLanguage, *profileTH)
+	profileLanguage = append(profileLanguage, *profileEN)
+	if len(profileLanguage) > 0 {
+		for _, lang := range profileLanguage {
+			result, err := dbProfile.UpdateOne(ctx, bson.M{"id": lang.ID}, &lang, &options.UpdateOptions{Upsert: &[]bool{true}[0]})
+			if err != nil {
+				logger.Error(err.Error())
+				session.AbortTransaction(ctx)
+				return nil, err
+			}
+			logger.Info("Update profile language success", "id", result.UpsertedID)
+		}
+	}
+
+	session.CommitTransaction(ctx)
+
+	return updateResult, nil
+}
 
 // func (u *userService) DeleteUser() {}
 
 // func (u *userService) AddRole() {}
+
+func (u *userService) generateAccessToken(user User) (string, error) {
+	private := os.Getenv("PRIVATE_ACCESS_KEY")
+	if private == "" {
+		return "", errors.New("private key not found")
+	}
+	privateKey, err := base64.StdEncoding.DecodeString(private)
+	if err != nil {
+		return "", err
+	}
+	rsa, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(privateKey))
+	if err != nil {
+		return "", err
+	}
+
+	claims := &RegisteredClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   user.ID,
+			Issuer:    os.Getenv("ISSUER"),
+			Audience:  jwt.ClaimStrings{},
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 5)),
+		},
+	}
+
+	if user.Email != "" {
+		claims.Email = user.Email
+	}
+
+	if user.Username != "" {
+		claims.UserName = user.Username
+	}
+
+	return jwt.NewWithClaims(jwt.SigningMethodRS256, claims).SignedString(rsa)
+}
+
+func (u *userService) generateRefreshToken(user User) (string, error) {
+	private := os.Getenv("PRIVATE_REFRESH_KEY")
+	if private == "" {
+		return "", errors.New("private key not found")
+	}
+
+	privateKey, err := base64.StdEncoding.DecodeString(private)
+	if err != nil {
+		return "", err
+	}
+	rsa, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(privateKey))
+	if err != nil {
+		return "", err
+	}
+
+	claims := &RegisteredClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   user.ID,
+			Issuer:    os.Getenv("ISSUER"),
+			Audience:  jwt.ClaimStrings{},
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 60)),
+		},
+	}
+
+	if user.Email != "" {
+		claims.Email = user.Email
+	}
+
+	if user.Username != "" {
+		claims.UserName = user.Username
+	}
+
+	return jwt.NewWithClaims(jwt.SigningMethodRS256, claims).SignedString(rsa)
+}
+
+func (u *userService) hashPassword(password string) (string, error) {
+	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hashed), nil
+}
+
+func (u *userService) comparePassword(hashed, password string) error {
+	return bcrypt.CompareHashAndPassword([]byte(hashed), []byte(password))
+}

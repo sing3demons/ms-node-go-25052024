@@ -1,9 +1,8 @@
 import { Router } from 'express'
-import { IRoute, TypeRoute } from './core/my-route'
 import { ProductRouter } from './product/product.route'
-import { LoggerType } from './core/logger'
 import { type MongoClient } from 'mongodb'
 import AuthService from './middleware/auth'
+import { IRoute, LoggerType, TypeRoute } from '@express-zod/sing3demons'
 
 export default function registerRoute(myRoute: IRoute = new TypeRoute(), client: MongoClient, logger: LoggerType) {
   const router = Router()

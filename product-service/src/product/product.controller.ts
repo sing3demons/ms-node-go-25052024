@@ -1,7 +1,5 @@
 import { z } from 'zod'
-import Context from '../core/context'
-import { LoggerType } from '../core/logger'
-import { IRoute } from '../core/my-route'
+import { IRoute, LoggerType, Context } from '@express-zod/sing3demons'
 import { IProduct, IProductQuerySchema, ProductBodySchema } from './product.model'
 import ProductService from './product.service'
 import config from '../config'

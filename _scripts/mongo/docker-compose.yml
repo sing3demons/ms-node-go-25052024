@@ -4,7 +4,7 @@ services:
   mongo1:
     image: mongo:6
     container_name: mongo1
-    command: ["--replSet", "my-replica-set", "--bind_ip_all", "--port", "27017"]
+    command: ['--replSet', 'my-replica-set', '--bind_ip_all', '--port', '27017']
     volumes:
       - ./data/mongo-1:/data/db
     ports:
@@ -18,7 +18,7 @@ services:
   mongo2:
     image: mongo:6
     container_name: mongo2
-    command: ["--replSet", "my-replica-set", "--bind_ip_all", "--port", "27018"]
+    command: ['--replSet', 'my-replica-set', '--bind_ip_all', '--port', '27018']
     volumes:
       - ./data/mongo-2:/data/db
     ports:
@@ -29,15 +29,23 @@ services:
   mongo3:
     image: mongo:6
     container_name: mongo3
-    command: ["--replSet", "my-replica-set", "--bind_ip_all", "--port", "27019"]
+    command: ['--replSet', 'my-replica-set', '--bind_ip_all', '--port', '27019']
     volumes:
       - ./data/mongo-3:/data/db
     ports:
       - 27019:27019
     networks:
       - ms-service
+  redis:
+    image: redis:6.2.5
+    hostname: redis
+    container_name: redis
+    restart: always
+    ports:
+      - '6379:6379'
+    networks:
+      - ms-service
 networks:
   ms-service:
     name: ms-service
-
 # mongodb://mongo1:27017,mongo2:27018,mongo3:27019/?replicaSet=my-replica-set

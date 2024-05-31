@@ -13,6 +13,7 @@ import (
 	"github.com/sing3demons/auth-service/router"
 	"github.com/sing3demons/auth-service/store"
 	"github.com/sing3demons/auth-service/user"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 func init() {
@@ -41,11 +42,11 @@ func main() {
 	r := router.New()
 	r.Use(mlog.Middleware(logger))
 	r.GET("/healthz", func(c *gin.Context) {
-		// if err := db.Ping(ctx, nil); err != nil {
-		// 	logger.Error(err.Error())
-		// 	c.JSON(500, "Internal Server Error")
-		// 	return
-		// }
+		if err := db.Ping(ctx, readpref.Primary()); err != nil {
+			logger.Error(err.Error())
+			c.JSON(500, "MongoDB is not available")
+			return
+		}
 
 		_, err := redisClient.Ping(ctx)
 		if err != nil {

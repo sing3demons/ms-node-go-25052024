@@ -11,6 +11,7 @@ import (
 	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/sing3demons/auth-service/redis"
 	"github.com/sing3demons/auth-service/router"
+	"github.com/sing3demons/auth-service/store"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -62,7 +63,9 @@ func Authorization() gin.HandlerFunc {
 
 func Register(r router.MyRouter, client *mongo.Client, redisClient redis.IRedis, logger *slog.Logger) router.MyRouter {
 	logger.Info("Register user routes")
-	userService := NewUserService(client, redisClient )
+
+	storer := store.New(client)
+	userService := NewUserService(storer, redisClient)
 	userHandler := NewUserHandler(userService, logger)
 	authMiddleware := Authorization()
 	v1 := r.Group("/api/v1")

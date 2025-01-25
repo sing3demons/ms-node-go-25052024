@@ -11,8 +11,8 @@ import (
 	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/sing3demons/auth-service/redis"
+	"github.com/sing3demons/auth-service/store"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -26,11 +26,11 @@ type UserService interface {
 }
 
 type userService struct {
-	*mongo.Client
+	store store.Store
 	redis redis.IRedis
 }
 
-func NewUserService(client *mongo.Client, redisClient redis.IRedis) UserService {
+func NewUserService(client store.Store, redisClient redis.IRedis) UserService {
 	return &userService{client, redisClient}
 }
 
@@ -49,6 +49,7 @@ func (u *userService) VerifyAccessToken(logger *slog.Logger, token string) (*Tok
 	if err != nil {
 		return nil, err
 	}
+
 	rsa, err := jwt.ParseRSAPublicKeyFromPEM([]byte(publicKey))
 	if err != nil {
 		return nil, err
@@ -58,11 +59,7 @@ func (u *userService) VerifyAccessToken(logger *slog.Logger, token string) (*Tok
 		return rsa, nil
 	})
 
-	if err != nil {
-		return nil, err
-	}
-
-	if !t.Valid {
+	if err != nil || !t.Valid {
 		return nil, errors.New(ErrTokenInvalid)
 	}
 
@@ -97,7 +94,7 @@ func (u *userService) verifyRefreshToken(token string) (jwt.Claims, error) {
 
 func (u *userService) Login(ctx context.Context, logger *slog.Logger, body Login) (*TokenResponse, error) {
 	logger.Info("userService Login")
-	db := u.Client.Database("auth").Collection("users")
+	db := u.store.Database("auth").Collection("users")
 	var user User
 	if body.Email != "" {
 		if err := db.FindOne(ctx, bson.M{"email": body.Email}).Decode(&user); err != nil {
@@ -147,7 +144,7 @@ func (u *userService) Login(ctx context.Context, logger *slog.Logger, body Login
 
 func (u *userService) CreateUser(ctx context.Context, logger *slog.Logger, body User) (User, error) {
 	logger.Info("userService Create user")
-	db := u.Client.Database("auth").Collection("users")
+	db := u.store.Database("auth").Collection("users")
 
 	if body.Username != "" {
 		if err := db.FindOne(ctx, bson.M{"username": body.Username}).Decode(&User{}); err == nil {
@@ -197,9 +194,12 @@ func (u *userService) CreateUser(ctx context.Context, logger *slog.Logger, body 
 
 func (u *userService) GetUser(ctx context.Context, logger *slog.Logger, id string) (User, error) {
 	logger.Info("userService Get user", "id", id)
-	db := u.Client.Database("auth").Collection("users")
+	col := u.store.Database("auth")
+	db := col.Collection("users")
 	var user User
-	if err := db.FindOne(ctx, bson.M{"id": id}).Decode(&user); err != nil {
+
+	singleResult := db.FindOne(ctx, bson.M{"id": id})
+	if err := singleResult.Decode(&user); err != nil {
 		logger.Error(err.Error())
 		return User{}, err
 	}
@@ -269,7 +269,7 @@ func (u *userService) RefreshToken(ctx context.Context, logger *slog.Logger, tok
 }
 
 func (u *userService) UpdateUser(ctx context.Context, logger *slog.Logger, body UpdateProfile) (any, error) {
-	session, err := u.Client.StartSession()
+	session, err := u.store.StartSession()
 	if err != nil {
 		logger.Error(err.Error())
 		return nil, err
@@ -278,7 +278,7 @@ func (u *userService) UpdateUser(ctx context.Context, logger *slog.Logger, body 
 	session.StartTransaction()
 	defer session.EndSession(ctx)
 
-	dbProfile := u.Client.Database("auth").Collection("profileLanguage")
+	dbProfile := u.store.Database("auth").Collection("profileLanguage")
 
 	profileLanguage := []ProfileLanguage{}
 	profileTH := &ProfileLanguage{}
@@ -289,23 +289,12 @@ func (u *userService) UpdateUser(ctx context.Context, logger *slog.Logger, body 
 		profileTH.FirstName = body.FirstNameTH
 	}
 
-	dbUser := u.Client.Database("auth").Collection("users")
+	dbUser := u.store.Database("auth").Collection("users")
 	users := Profile{}
 	if err := dbUser.FindOne(ctx, bson.M{"id": body.ID}).Decode(&users); err != nil {
 		logger.Error(err.Error())
 		session.AbortTransaction(ctx)
 		return nil, err
-	}
-
-	if (users.Languages == nil) || (len(users.Languages) == 0) {
-		profile := ProfileLanguage{}
-		profile.ID = uuid.New().String()
-
-	} else {
-		for _, lang := range users.Languages {
-
-			_ = lang
-		}
 	}
 
 	if body.FirstName != "" {

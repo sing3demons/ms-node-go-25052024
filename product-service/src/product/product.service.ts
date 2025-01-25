@@ -212,6 +212,7 @@ export default class ProductService {
         message: 'Create product failed',
         error,
       })
+      throw error; 
     } finally {
       await session.endSession()
     }

@@ -12,11 +12,6 @@ export default class ProductController {
     private readonly productService: ProductService
   ) {}
 
-  //   page?: string
-  //   pageSize?: string
-  //   sort?: string
-  //   order?: string
-
   getProducts = this.route
     .get('/')
     .query(IProductQuerySchema)

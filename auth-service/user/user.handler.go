@@ -159,7 +159,7 @@ func (u *userHandler) Login(c *gin.Context) {
 		logger.Error(err.Error())
 		response.Message = err.Error()
 		response.Status = "error"
-		c.JSON(400, response)
+		c.JSON(http.StatusBadRequest, response)
 		return
 	}
 
@@ -168,7 +168,7 @@ func (u *userHandler) Login(c *gin.Context) {
 		logger.Error(err.Error())
 		response.Message = err.Error()
 		response.Status = "error"
-		c.JSON(400, response)
+		c.JSON(http.StatusBadRequest, response)
 		return
 	}
 

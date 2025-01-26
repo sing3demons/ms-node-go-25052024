@@ -4,9 +4,11 @@ import (
 	"context"
 	"log"
 	"os"
+	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 func NewStore(ctx context.Context) *mongo.Client {
@@ -24,10 +26,20 @@ func NewStore(ctx context.Context) *mongo.Client {
 }
 
 type Store interface {
+	Connect(ctx context.Context) error
+	Ping(ctx context.Context, rp *readpref.ReadPref) error
+	ListDatabases(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) (mongo.ListDatabasesResult, error)
+	ListDatabaseNames(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) ([]string, error)
+	UseSessionWithOptions(ctx context.Context, opts *options.SessionOptions, fn func(mongo.SessionContext) error) error
+	Watch(ctx context.Context, pipeline interface{}, opts ...*options.ChangeStreamOptions) (*mongo.ChangeStream, error)
+	NumberSessionsInProgress() int
+	Timeout() *time.Duration
+
 	Close(ctx context.Context)
 	Database(name string) Database
 	Disconnect(ctx context.Context) error
 	StartSession(opts ...*options.SessionOptions) (mongo.Session, error)
+	UseSession(ctx context.Context, fn func(mongo.SessionContext) error) error
 }
 
 type store struct {
@@ -38,8 +50,44 @@ func New(client *mongo.Client) Store {
 	return &store{Client: client}
 }
 
+func (s *store) Connect(ctx context.Context) error {
+	return s.Client.Connect(ctx)
+}
+func (s *store) Ping(ctx context.Context, rp *readpref.ReadPref) error {
+	return s.Client.Ping(ctx, rp)
+}
+func (s *store) ListDatabases(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) (mongo.ListDatabasesResult, error) {
+	return s.Client.ListDatabases(ctx, filter, opts...)
+}
+func (s *store) ListDatabaseNames(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) ([]string, error) {
+	return s.Client.ListDatabaseNames(ctx, filter, opts...)
+}
+func (s *store) UseSessionWithOptions(ctx context.Context, opts *options.SessionOptions, fn func(mongo.SessionContext) error) error {
+	return s.Client.UseSessionWithOptions(ctx, opts, fn)
+}
+func (s *store) Watch(ctx context.Context, pipeline interface{}, opts ...*options.ChangeStreamOptions) (*mongo.ChangeStream, error) {
+	return s.Client.Watch(ctx, pipeline, opts...)
+}
+func (s *store) NumberSessionsInProgress() int {
+	return s.Client.NumberSessionsInProgress()
+}
+func (s *store) Timeout() *time.Duration {
+	return s.Client.Timeout()
+}
+
 func (s *store) Close(ctx context.Context) {
 	s.Client.Disconnect(ctx)
+}
+
+func (s *store) UseSession(ctx context.Context, fn func(mongo.SessionContext) error) error {
+	session, err := s.Client.StartSession()
+	if err != nil {
+		return err
+	}
+
+	defer session.EndSession(ctx)
+
+	return mongo.WithSession(ctx, session, fn)
 }
 
 func (s *store) Database(name string) Database {

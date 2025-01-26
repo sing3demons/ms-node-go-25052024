@@ -294,6 +294,7 @@ func (u *userService) UpdateUser(ctx context.Context, logger *slog.Logger, body 
 	if err := dbUser.FindOne(ctx, bson.M{"id": body.ID}).Decode(&users); err != nil {
 		logger.Error(err.Error())
 		session.AbortTransaction(ctx)
+
 		return nil, err
 	}
 
